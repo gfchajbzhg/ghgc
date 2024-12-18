@@ -1,0 +1,2203 @@
+//+------------------------------------------------------------------+
+//|                                                        uther.mq4 |
+//|                        Copyright 2017, MetaQuotes Software Corp. |
+//|                                             https://www.mql5.com |
+//+------------------------------------------------------------------+
+#property copyright "Copyright 2017, MetaQuotes Software Corp."
+#property link      "https://www.mql5.com"
+#property version   "1.00"
+#property strict
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+int ThisBarTrade =  0;//variable used to ensure only one trade per bar is performed
+double pips=0;//variable used to ensure only one trade per bar is performed
+
+
+extern double trendAverage=50;
+extern double shortAverage = 50;
+extern double longAverage = 50;
+//extern double takeProfit = 0;
+extern double stopLos = 5;
+double stopLoss = stopLos*Point*10;
+extern double slope = 0;
+extern double shift = 5;
+ double trail = stopLoss;
+    
+   double lotSize = .01;
+   
+   
+int OnInit()
+{
+ double tickSize =MarketInfo(Symbol(),MODE_TICKSIZE);
+   if(tickSize==.00001||tickSize==.001)
+    pips= tickSize*100;
+   else pips=tickSize;
+ 
+   return(INIT_SUCCEEDED);
+   }
+
+//+------------------------------------------------------------------+
+//| Expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+  {
+//---
+   
+  }
+//+------------------------------------------------------------------+
+//| Expert tick function                                             |
+//+------------------------------------------------------------------+
+void OnTick()
+  {
+  if (Bars != ThisBarTrade ) {
+   ThisBarTrade = Bars; 
+   
+   double trade = tradeTrades();
+   double traill = trailTrades();
+   
+   
+   }}
+   
+   double tradeTrades(){
+   Print(iMA(NULL,0,trendAverage,0,0,0,0)-iMA(NULL,0,trendAverage,0,0,0,shift)/shift);
+   //double lotSize = NormalizeDouble((((AccountBalance()*.05)/(.01*stopLoss))*.01),2); //sizes investment to 5% of account balance
+   // if(lotSize<.01){lotSize = .01;} if account reduces, makes 1 microlot the min investment
+   
+//---
+      //SELL
+   if((iMA(NULL,0,5,0,0,0,0)<iMA(NULL,0,longAverage,0,0,0,0))&&(iMA(NULL,0,5,0,0,0,0)<iMA(NULL,0,shortAverage,0,0,0,0))){//fast moving average is above 2 slower moving averages
+   if(iStochastic(NULL,0,5,3,3,0,0,0,1)>80&&iStochastic(NULL,0,5,3,3,0,0,0,0)<80){ //stochastic idicator goes through a certain point
+   if(((iMA(NULL,0,trendAverage,0,0,0,0)-iMA(NULL,0,trendAverage,0,0,0,shift)))<0){//slope of a certain moving average is greater than a certain amount
+   
+   double sellticket=OrderSend(Symbol(),OP_SELL,lotSize,Bid,3,Bid+(stopLoss),0/*Bid-(takeProfit*.00001)*/,NULL,0,0,Red);
+   }}}
+   
+   //BUY
+   if((iMA(NULL,0,5,0,0,0,0)>iMA(NULL,0,longAverage,0,0,0,0))&&(iMA(NULL,0,5,0,0,0,0)>iMA(NULL,0,shortAverage,0,0,0,0))){//fast moving average is above 2 slower moving averages
+   if(iStochastic(NULL,0,5,3,3,0,0,0,1)<20&&iStochastic(NULL,0,5,3,3,0,0,0,0)>20){ //stochastic idicator goes through a certain point
+   if(((iMA(NULL,0,trendAverage,0,0,0,0)-iMA(NULL,0,trendAverage,0,0,0,shift)))>0){//slope of a certain moving average is greater than a certain amount
+   
+   double buyticket=OrderSend(Symbol(),OP_BUY,lotSize,Ask,3,Ask-(stopLoss),0/*Ask+(takeProfit*.00001)*/,NULL,0,0,Green);
+   }}}
+   
+   return 0;
+  }
+  
+  double trailTrades(){
+   {
+   
+//----
+   double stopcrnt;
+   double stopcal;
+   int trade;
+   int trades=OrdersTotal();
+   double profitcalc;
+   for(trade=0;trade<trades;trade++)
+     {
+      OrderSelect(trade,SELECT_BY_POS,MODE_TRADES);
+      if(OrderSymbol()==Symbol())
+         {
+         //continue;
+         //LONG
+         if(OrderType()==OP_BUY)
+           {
+            stopcrnt=OrderStopLoss();
+            stopcal=Bid-(trail);
+            //profitcalc=OrderTakeProfit()+(TakeProfit*Point);
+            if (stopcrnt==0)
+              {
+               OrderModify(OrderTicket(),OrderOpenPrice(),stopcal,0/*profitcalc*/,0,Blue);
+              }
+            else
+               if(stopcal>(stopcrnt+trail))
+                 {
+                  OrderModify(OrderTicket(),OrderOpenPrice(),stopcal,0/*profitcalc*/,0,Blue);
+                    double buyticket=OrderSend(Symbol(),OP_BUY,lotSize,Ask,3,Ask-(trail),0/*Ask+(takeProfit*.00001)*/,NULL,0,0,Green);
+                 }
+            }
+         }//LONG
+         //Shrt
+         if(OrderType()==OP_SELL)
+           {
+            stopcrnt=OrderStopLoss();
+            stopcal=Ask+(trail);
+           // profitcalc=OrderTakeProfit()-(TakeProfit*Point);
+            if (stopcrnt==0)
+              {
+               OrderModify(OrderTicket(),OrderOpenPrice(),stopcal,0/*profitcalc*/,0,Red);
+              }
+            else
+               if(stopcal<(stopcrnt-trail))
+                 {
+                  OrderModify(OrderTicket(),OrderOpenPrice(),stopcal,0/*profitcalc*/,0,Red);
+                  double sellticket=OrderSend(Symbol(),OP_SELL,lotSize,Bid,3,Bid+(trail),0/*Bid-(takeProfit*.00001)*/,NULL,0,0,Red);
+                 }
+           }
+      }
+  }//Shrt
+  
+  return 0;
+  }
+//+-----------------------------------------------------
+//+------------------------------------------------------------------+
+//|                                                        uther.mq4 |
+//|                        Copyright 2017, MetaQuotes Software Corp. |
+//|                                             https://www.mql5.com |
+//+------------------------------------------------------------------+
+#property copyright "Copyright 2017, MetaQuotes Software Corp."
+#property link      "https://www.mql5.com"
+#property version   "1.00"
+#property strict
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+int ThisBarTrade =  0;//variable used to ensure only one trade per bar is performed
+double pips=0;//variable used to ensure only one trade per bar is performed
+
+
+extern double trendAverage=50;
+extern double shortAverage = 50;
+extern double longAverage = 50;
+//extern double takeProfit = 0;
+extern double stopLos = 5;
+double stopLoss = stopLos*Point*10;
+extern double slope = 0;
+extern double shift = 5;
+ double trail = stopLoss;
+    
+   double lotSize = .01;
+   
+   
+int OnInit()
+{
+ double tickSize =MarketInfo(Symbol(),MODE_TICKSIZE);
+   if(tickSize==.00001||tickSize==.001)
+    pips= tickSize*100;
+   else pips=tickSize;
+ 
+   return(INIT_SUCCEEDED);
+   }
+
+//+------------------------------------------------------------------+
+//| Expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+  {
+//---
+   
+  }
+//+------------------------------------------------------------------+
+//| Expert tick function                                             |
+//+------------------------------------------------------------------+
+void OnTick()
+  {
+  if (Bars != ThisBarTrade ) {
+   ThisBarTrade = Bars; 
+   
+   double trade = tradeTrades();
+   double traill = trailTrades();
+   
+   
+   }}
+   
+   double tradeTrades(){
+   Print(iMA(NULL,0,trendAverage,0,0,0,0)-iMA(NULL,0,trendAverage,0,0,0,shift)/shift);
+   //double lotSize = NormalizeDouble((((AccountBalance()*.05)/(.01*stopLoss))*.01),2); //sizes investment to 5% of account balance
+   // if(lotSize<.01){lotSize = .01;} if account reduces, makes 1 microlot the min investment
+   
+//---
+   
+   //SELL
+   if((iMA(NULL,0,5,0,0,0,0)<iMA(NULL,0,longAverage,0,0,0,0))&&(iMA(NULL,0,5,0,0,0,0)<iMA(NULL,0,shortAverage,0,0,0,0))){//fast moving average is above 2 slower moving averages
+   if(iStochastic(NULL,0,5,3,3,0,0,0,1)>80&&iStochastic(NULL,0,5,3,3,0,0,0,0)<80){ //stochastic idicator goes through a certain point
+   if(((iMA(NULL,0,trendAverage,0,0,0,0)-iMA(NULL,0,trendAverage,0,0,0,shift)))<0){//slope of a certain moving average is greater than a certain amount
+   
+   double sellticket=OrderSend(Symbol(),OP_SELL,lotSize,Bid,3,Bid+(stopLoss),0/*Bid-(takeProfit*.00001)*/,NULL,0,0,Red);
+   }}}
+   
+   //BUY
+   if((iMA(NULL,0,5,0,0,0,0)>iMA(NULL,0,longAverage,0,0,0,0))&&(iMA(NULL,0,5,0,0,0,0)>iMA(NULL,0,shortAverage,0,0,0,0))){//fast moving average is above 2 slower moving averages
+   if(iStochastic(NULL,0,5,3,3,0,0,0,1)<20&&iStochastic(NULL,0,5,3,3,0,0,0,0)>20){ //stochastic idicator goes through a certain point
+   if(((iMA(NULL,0,trendAverage,0,0,0,0)-iMA(NULL,0,trendAverage,0,0,0,shift)))>0){//slope of a certain moving average is greater than a certain amount
+   
+   double buyticket=OrderSend(Symbol(),OP_BUY,lotSize,Ask,3,Ask-(stopLoss),0/*Ask+(takeProfit*.00001)*/,NULL,0,0,Green);
+   }}}
+   
+   return 0;
+  }
+  
+  double trailTrades(){
+   {
+   
+//----
+   double stopcrnt;
+   double stopcal;
+   int trade;
+   int trades=OrdersTotal();
+   double profitcalc;
+   for(trade=0;trade<trades;trade++)
+     {
+      OrderSelect(trade,SELECT_BY_POS,MODE_TRADES);
+      if(OrderSymbol()==Symbol())
+         {
+         //continue;
+         //LONG
+         if(OrderType()==OP_BUY)
+           {
+            stopcrnt=OrderStopLoss();
+            stopcal=Bid-(trail);
+            //profitcalc=OrderTakeProfit()+(TakeProfit*Point);
+            if (stopcrnt==0)
+              {
+               OrderModify(OrderTicket(),OrderOpenPrice(),stopcal,0/*profitcalc*/,0,Blue);
+              }
+            else
+               if(stopcal>(stopcrnt+trail))
+                 {
+                  OrderModify(OrderTicket(),OrderOpenPrice(),stopcal,0/*profitcalc*/,0,Blue);
+                    double buyticket=OrderSend(Symbol(),OP_BUY,lotSize,Ask,3,Ask-(trail),0/*Ask+(takeProfit*.00001)*/,NULL,0,0,Green);
+                 }
+            }
+         }//LONG
+         //Shrt
+         if(OrderType()==OP_SELL)
+           {
+            stopcrnt=OrderStopLoss();
+            stopcal=Ask+(trail);
+           // profitcalc=OrderTakeProfit()-(TakeProfit*Point);
+            if (stopcrnt==0)
+              {
+               OrderModify(OrderTicket(),OrderOpenPrice(),stopcal,0/*profitcalc*/,0,Red);
+              }
+            else
+               if(stopcal<(stopcrnt-trail))
+                 {
+                  OrderModify(OrderTicket(),OrderOpenPrice(),stopcal,0/*profitcalc*/,0,Red);
+                  double sellticket=OrderSend(Symbol(),OP_SELL,lotSize,Bid,3,Bid+(trail),0/*Bid-(takeProfit*.00001)*/,NULL,0,0,Red);
+                 }
+           }
+      }
+  }//Shrt
+//+------------------------------------------------------------------+
+//|                                                     OverLord.mq4 |
+//|                        Copyright 2017, MetaQuotes Software Corp. |
+//|                                             https://www.mql5.com |
+//+------------------------------------------------------------------+
+#property copyright "Copyright 2017, MetaQuotes Software Corp."
+#property link      "https://www.mql5.com"
+#property version   "1.00"
+#property strict
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+int ThisBarTrade =  0;//variable used to ensure only one trade per bar is performed
+double pips=0;//variable used to ensure only one trade per bar is performed
+
+extern double trailLosss =35;
+double trailLoss =trailLosss*Point*10;
+extern double buyCutOff = .52; 
+extern double sellCutOff = .49;
+extern double takeProfitt = 80;
+extern double stopLosss = 100;
+//extern double risk = .01;
+//extern double accountReserve = .2;
+//extern double Average = 20;
+
+ double takeProfit = takeProfitt*Point*10;//6.8
+ double stopLoss = stopLosss*Point*10;//3.6
+
+
+double ADirection = 0; //proportion of last 5 1m ticks upward
+double A = 0; //proportion of last 10 1m ticks upward
+double MacD = 0; //proportion of last 20 1m ticks upward
+double BDirection = 0; //Slope of c from 20 mins ago to now
+double B = 0; //last 5 1m tick size and direction (average)
+double Stoc = 0; //last 10 1m tick size and direction (average)
+double CDirection = 0; //20SMA slope 20 periods ago till now
+double C = 0; //20SMA slope 20 periods ago till now
+
+
+double b0 = 0.100484990568514;//0.0999763013501513;//0.0998835492251033; //120minute regression 2015-2017//15minute regression 2015-2017//15minute regression 2017
+double b1 = -0.00066595383197919;//-0.0022731660694331;//-0.0023042820575413; 
+double b2 = 0.0428674208312725;//0.100473350586248;//0.0965638646239525;
+double b3 = 0.10026941075673;//0.0999786211021981;//0.0999690527250419;
+double b4 = -0.000737052644227322;//-0.0016427123250452;//-0.00117997690505978;
+double b5 =-0.0452948686416168;//-0.0422879427478928;// -0.0387588354143091;
+double b6 =0.100313074528222;// 0.0999012224927114;//0.0998219480235081;
+double b7 = -0.00091683662989246;//-0.00157035305521744;//-0.00184379884580967;
+double b8 = -0.110420005686238;//-0.137323060851885;//-0.102498900152494;
+double b9 = 0.0996855487287171;// 0.0999423364995556;//0.0999901623714795;
+double b10 = -0.00110231356960479;//-0.00185134189216756;//-0.00109692561030346;
+double b11 = -0.00401395842084728;//-0.0168638451246795;//0.000830966392230202;
+double b12 = 0.100921965659202;//0.100131541003995;//0.0999063692480248;
+double b13 = -0.00077209116917602;//-0.00122236953033615;//-0.0019384949186334;
+double b14= 0.133298128696589;//0.155103546030637;//0.175214415227082;
+double b15= 0.0998960069813121;//0.0999816265149066;//0.0999772814218886;
+double b16= -0.00104583443272743;//-0.00116535270396477;//-0.00257373671510201;
+double b17= -0.0108703927872572;//0.0353197402549742;//-0.0293837905842666;
+double b18= 0.100186757403801;//0.0998565335792022;//0.100012359102084;
+double b19= -0.000942278455154396;//-0.00235871026464803;//-0.00348929256095971;
+double b20= -0.0743570710345244;// -0.0929158507069024;//-0.103507220104105;
+double b21= 0.09924338123818;//0.0999014705809957;//0.0999900439042032;
+double b22= -0.000716833765913933;//-0.00199660515334506;//-0.00268673992390745;
+double b23= 0.0510966038951804;// 0.0400847847813721;//0.0338105780929237;
+/*
+double b24= 1094.17572965062;
+double b25= 1094.17572965062;
+double b26= 1094.17572965062;
+double b27= 1094.17572965062;
+double b28= 1094.17572965062;
+double b29= 1094.17572965062;
+double b30= 1094.17572965062;*/
+
+
+
+
+int OnInit()
+{
+ double tickSize =MarketInfo(Symbol(),MODE_TICKSIZE);
+   if(tickSize==.00001||tickSize==.001)
+    pips= tickSize*100;
+   else pips=tickSize;
+ 
+   return(INIT_SUCCEEDED);
+   }
+//+------------------------------------------------------------------+
+//| Expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+  {
+//---
+   
+  }
+//+------------------------------------------------------------------+
+//| Expert tick function                                             |
+//+------------------------------------------------------------------+
+void OnTick()
+  {
+if (Bars != ThisBarTrade ) {
+   ThisBarTrade = Bars;  // ensure only one trade opportunity per bar
+   // Trade logic goes here
+    /*/ /To Be Removed
+    double fileHandle = FileOpen("testing.csv",FILE_CSV|FILE_READ | FILE_WRITE);
+   if(fileHandle!=INVALID_HANDLE){
+   
+      FileSeek(fileHandle, 0, SEEK_END); // Write at the end of the file.
+      string data = iTime(NULL,0,0)+"," + iClose(NULL,0,0)+","+ ADirection+","+ A+","+ BDirection+","+ B+","+ CDirection+","+ C+","+ MacD+","+ Stoc;
+      FileWrite(fileHandle,data);
+      FileClose(fileHandle);
+     }
+     else
+      Print("Failed");*/
+   
+   ADirection=getADirection();
+   A=getA();
+   MacD=getMacD();
+   BDirection=getBDirection();
+   B=getB();
+   Stoc=getStoc();
+   CDirection=getCDirection();
+   C=getC();
+   double logit=0;
+   
+
+   
+ if(ADirection<0&&BDirection<0&&CDirection<0){
+ logit = b14+ b12*A+(b13*Stoc);
+ }
+ if(ADirection>0&&BDirection<0&&CDirection<0){
+ logit = 0;//b23+ b21*A+(b22*Stoc);
+ } 
+ if(ADirection>0&&BDirection>0&&CDirection<0){
+ logit = 0;//b20+ b18*A+(b19*Stoc);
+ }
+ if(ADirection<0&&BDirection>0&&CDirection<0){
+ logit = 0;//b17+ b15*A+(b16*Stoc);
+ }
+ if(ADirection<0&&BDirection<0&&CDirection>0){
+  logit =0;//b2+ b0*A+(b1*Stoc);
+ }
+ if(ADirection>0&&BDirection<0&&CDirection>0){
+ logit = 0;//b11+ b9*A+(b10*Stoc);
+ }
+ if(ADirection>0&&BDirection>0&&CDirection>0){
+  logit = b8+ b6*A+(b7*Stoc);
+ } 
+ if(ADirection<0&&BDirection>0&&CDirection>0){
+ logit = 0;//b5+ b3*A+(b4*Stoc);
+ } 
+ 
+  /*    
+if(logit!=0){      
+double probability= (exp(logit))/(1+(exp(logit)));  
+int ticketNumber;
+if(probability>buyCutOff)
+{ticketNumber= OrderSend(Symbol(), OP_BUY, 5, Close[0], 0, 0, 0, "BO exp:900", 1, 0, clrGreen);
+if(ticketNumber <0){Print("Not Working BUY");}}
+if(probability<sellCutOff)
+{ticketNumber=OrderSend(Symbol(), OP_SELL, 5, Close[0], 0, 0, 0, "BO exp:900", 1, 0, clrGreen);
+if(ticketNumber <0){Print("Not Working SELL");}}}*/
+
+//logit = b01+ b3*(b1*B+A)+b2*(Stoc) ;
+
+   //double lotSize = NormalizeDouble(((     ((AccountFreeMargin()-AccountFreeMargin()*accountReserve)*risk)/(.01*stopLosss))    *.01),2); //sizes investment to 5% of account balance
+ //  if(lotSize<.01){lotSize = .01;} //if account reduces, makes 1 microlot the min investment
+ //  Print(lotSize+" lotsize");
+  
+ 
+
+double expL = exp(logit);
+double probability = expL/(1+expL);
+
+if(probability>buyCutOff&&AccountBalance()<=AccountEquity())
+{
+double buyticket=OrderSend(Symbol(),OP_BUY,.01,Ask,3,Ask-(stopLoss),Ask+(takeProfit),NULL,0,0,Green);
+//double  close=closeTrades("short");
+}
+if(probability<sellCutOff&&AccountBalance()<=AccountEquity())
+{
+ double sellticket=OrderSend(Symbol(),OP_SELL,.01,Bid,3,Bid+(stopLoss),Bid-(takeProfit),NULL,0,0,Red);
+// double  close=closeTrades("long");
+}
+double number = trailTrades();
+}}
+   
+  
+  ////--------------------------------------------------
+  double getProbability( double logit){//keep.0155
+ // double logit = 
+  //double logit = b0+b1*.475+b2*0.3+b3*.2+b4*-.0275+b5*-.00012+b6*-.00008+b7*.00000675;
+  double expL = exp(logit);
+
+  return  ((expL/(1+expL)));
+  }
+  //----------------------------------------------------
+  double getADirection(){
+   double didg;
+  didg= (iMA(NULL,0,5,0,0,0,0)-iMA(NULL,0,20,0,0,0,0));
+
+  if(didg >0){return 1;}
+  if(didg == 0){return 0;}
+  if(didg<0){return-1;}
+    return 0;
+  }
+  
+  //---------------------------------------------------
+  double getA(){
+   double didg;
+  didg= (iMA(NULL,0,5,0,0,0,0)-iMA(NULL,0,20,0,0,0,0));//51.73 
+// didg= (iMA("XAUUSD",0,5,0,0,0,0)-iMA("XAUUSD",0,20,0,0,0,0));  not tried
+  
+  return didg;
+  }
+ 
+  
+  //-----------------------------------------------------
+  double getMacD(){
+   double didg;
+   didg= (iMACD(NULL,0,12,26,9,0,0,0));
+
+  
+  return didg;
+  }
+  //------------------------------------------------------
+  double getBDirection(){
+   double didg;
+   didg= (iMA(NULL,0,20,0,0,0,0)-iMA(NULL,0,200,0,0,0,0));
+
+  if(didg >0){return 1;}
+  if(didg == 0){return 0;}
+  if(didg<0){return-1;}
+
+  
+  return 0;
+  }
+  //--------------------------------------------------
+  double getB(){
+   double didg;
+   didg= (iMA(NULL,0,20,0,0,0,0)-iMA(NULL,0,200,0,0,0,0));//51.67 
+ //didg= (iMA("XAUUSD",0,20,0,0,0,0)-iMA("XAUUSD",0,200,0,0,0,0)); not tried
+  
+  return didg;
+  }
+  //-------------------------------------------
+  double getStoc(){
+   double didg;
+   didg= (iStochastic(NULL,0,5,3,3,0,0,0,0)-50);
+ //didg= (iMA(NULL,0,20,0,0,0,0)-iMA(NULL,0,80,0,0,0,0));//51.42
+  
+  return didg;
+  }
+  //--------------------------------------
+  double getCDirection(){
+   double didg;
+   didg= (iMA(NULL,0,20,0,0,0,0)-iMA(NULL,0,2000,0,0,0,0));
+
+  if(didg >0){return 1;}
+  if(didg == 0){return 0;}
+  if(didg<0){return-1;}
+
+  
+  return 0;
+  }
+  
+//+------------------------------------------------------------------+
+ double getC(){
+   double didg;
+didg= (iMA(NULL,0,20,0,0,0,0)-iMA(NULL,0,2000,0,0,0,0));
+ 
+  
+  return didg;
+  }
+  double closeTrades(string direction) {
+  double longTrades = 0;
+  int trade;
+  int tradeCount=0;
+  int trades=OrdersTotal();
+  for(trade=0;trade<trades;trade++)
+     {
+    
+      OrderSelect(trade,SELECT_BY_POS,MODE_TRADES);
+      if(OrderSymbol()==Symbol())
+         {
+         tradeCount++;
+  if(direction=="long")
+           {OrderClose(OrderTicket(),OrderLots(),Bid,3,0);}
+           if(direction=="short")
+           {OrderClose(OrderTicket(),OrderLots(),Ask,3,0);}
+  
+  
+  }}
+  
+ return 0;
+  }
+   double trailTrades(){
+   {
+  //double tradesGood = checkTrades();
+//----
+   double stopcrnt;
+   double stopcal;
+   int trade;
+   int trades=OrdersTotal();
+   double profitcalc;
+   for(trade=0;trade<trades;trade++)
+     {
+    
+      OrderSelect(trade,SELECT_BY_POS,MODE_TRADES);
+      if(OrderSymbol()==Symbol())
+         {
+         //continue;
+         //LONG
+         if(OrderType()==OP_BUY)
+           {
+            stopcrnt=OrderStopLoss();
+            stopcal=Bid-(stopLoss);
+            //profitcalc=OrderTakeProfit()+(TakeProfit*Point);
+            if (stopcrnt==0)
+              {
+               OrderModify(OrderTicket(),OrderOpenPrice(),stopcal,0/*profitcalc*/,0,Blue);
+              }
+              
+              
+              
+              
+             
+           /* else
+               if(OrderOpenPrice()<OrderStopLoss()&& stopcal>(stopcrnt+trailProfit)) //moves stop from break even up continually
+                 {
+                  OrderModify(OrderTicket(),OrderOpenPrice(),stopcal,0/*profitcalc*///,0,Blue);
+                  //  if(trades<20){ double buyticket=OrderSend(Symbol(),OP_BUY,lotSize,Ask,3,stopcal/*Ask-(trail)*/,0/*Ask+(takeProfit*.00001)*/,NULL,0,0,Green);}
+               //  }*/
+                 else
+               if(OrderOpenPrice()>OrderStopLoss()&&stopcal>(stopcrnt+trailLoss)&&trailLoss!=0)//moves stop up to open price
+                 {
+                  OrderModify(OrderTicket(),OrderOpenPrice(),stopcal,OrderTakeProfit(),0,Blue);
+             // if(OrderOpenPrice()<OrderStopLoss()){double buyticket= OrderSend(Symbol(),OP_BUY,.01,Ask,3,stopcal,OrderTakeProfit(),NULL,0,0,Green);}
+                 }
+            }
+         }//LONG
+         //Shrt
+         if(OrderType()==OP_SELL)
+           {
+            stopcrnt=OrderStopLoss();
+            stopcal=Ask+(stopLoss);
+           // profitcalc=OrderTakeProfit()-(TakeProfit*Point);
+            if (stopcrnt==0)
+              {
+               OrderModify(OrderTicket(),OrderOpenPrice(),stopcal,0/*profitcalc*/,0,Red);
+              }
+             
+          /*  else
+               if(OrderOpenPrice()>OrderStopLoss()&&stopcal<(stopcrnt-trailProfit))
+                 {
+                  OrderModify(OrderTicket(),OrderOpenPrice(),stopcal,0/*profitcalc*///,0,Red);
+              //  if(trades<20){ double sellticket=OrderSend(Symbol(),OP_SELL,lotSize,Bid,3,stopcal/*Bid+(trail)*/,0/*Bid-(takeProfit*.00001)*/,NULL,0,0,Red);}
+                // }*/
+                 else
+               if(OrderOpenPrice()<OrderStopLoss()&&stopcal<(stopcrnt-trailLoss)&&trailLoss!=0)
+                 {
+                  OrderModify(OrderTicket(),OrderOpenPrice(),stopcal,OrderTakeProfit(),0,Red);
+               // if(OrderOpenPrice()>OrderStopLoss()){double buyticket= OrderSend(Symbol(),OP_SELL,.01,Bid,3,stopcal,OrderTakeProfit(),NULL,0,0,Green);}
+                 }
+           }
+      }
+  }//Shrt
+  
+  return 0;
+  }
+  double checkTrades()
+  {
+  double good = 0;
+  int trade;
+  int trades=OrdersTotal();
+  for(trade=0;trade<trades;trade++)
+     {
+    
+      OrderSelect(trade,SELECT_BY_POS,MODE_TRADES);
+      if(OrderSymbol()==Symbol())
+         {
+  if(OrderType()==OP_BUY)
+           {if(OrderOpenPrice()<Ask){good++;}}
+  
+  
+  if(OrderType()==OP_SELL)
+           {if(OrderOpenPrice()>Bid){good++;}}
+  
+  }}
+  if(good>=trades-2){return 1;}
+  else return 0;
+
+  }
+//+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
+//|                                               Moving Average.mq4 |
+//|                   Copyright 2005-2014, MetaQuotes Software Corp. |
+//|                                              http://www.mql4.com |
+//+------------------------------------------------------------------+
+#property copyright   "2005-2014, MetaQuotes Software Corp."
+#property link        "http://www.mql4.com"
+#property description "Moving Average sample expert advisor"
+
+#define MAGICMA  20131111
+//--- Inputs
+input double Lots          =0.1;
+input double MaximumRisk   =0.02;
+input double DecreaseFactor=3;
+input int    MovingPeriod  =12;
+input int    MovingShift   =6;
+//+------------------------------------------------------------------+
+//| Calculate open positions                                         |
+//+------------------------------------------------------------------+
+int CalculateCurrentOrders(string symbol)
+  {
+   int buys=0,sells=0;
+//---
+   for(int i=0;i<OrdersTotal();i++)
+     {
+      if(OrderSelect(i,SELECT_BY_POS,MODE_TRADES)==false) break;
+      if(OrderSymbol()==Symbol() && OrderMagicNumber()==MAGICMA)
+        {
+         if(OrderType()==OP_BUY)  buys++;
+         if(OrderType()==OP_SELL) sells++;
+        }
+     }
+//--- return orders volume
+   if(buys>0) return(buys);
+   else       return(-sells);
+  }
+//+------------------------------------------------------------------+
+//| Calculate optimal lot size                                       |
+//+------------------------------------------------------------------+
+double LotsOptimized()
+  {
+   double lot=Lots;
+   int    orders=HistoryTotal();     // history orders total
+   int    losses=0;                  // number of losses orders without a break
+//--- select lot size
+   lot=NormalizeDouble(AccountFreeMargin()*MaximumRisk/1000.0,1);
+//--- calcuulate number of losses orders without a break
+   if(DecreaseFactor>0)
+     {
+      for(int i=orders-1;i>=0;i--)
+        {
+         if(OrderSelect(i,SELECT_BY_POS,MODE_HISTORY)==false)
+           {
+            Print("Error in history!");
+            break;
+           }
+         if(OrderSymbol()!=Symbol() || OrderType()>OP_SELL)
+            continue;
+         //---
+         if(OrderProfit()>0) break;
+         if(OrderProfit()<0) losses++;
+        }
+      if(losses>1)
+         lot=NormalizeDouble(lot-lot*losses/DecreaseFactor,1);
+     }
+//--- return lot size
+   if(lot<0.1) lot=0.1;
+   return(lot);
+  }
+//+------------------------------------------------------------------+
+//| Check for open order conditions                                  |
+//+------------------------------------------------------------------+
+void CheckForOpen()
+  {
+   double ma;
+   int    res;
+//--- go trading only for first tiks of new bar
+   if(Volume[0]>1) return;
+//--- get Moving Average 
+   ma=iMA(NULL,0,MovingPeriod,MovingShift,MODE_SMA,PRICE_CLOSE,0);
+//--- sell conditions
+   if(Open[1]>ma && Close[1]<ma)
+     {
+      res=OrderSend(Symbol(),OP_SELL,LotsOptimized(),Bid,3,0,0,"",MAGICMA,0,Red);
+      return;
+     }
+//--- buy conditions
+   if(Open[1]<ma && Close[1]>ma)
+     {
+      res=OrderSend(Symbol(),OP_BUY,LotsOptimized(),Ask,3,0,0,"",MAGICMA,0,Blue);
+      return;
+     }
+//---
+  }
+//+------------------------------------------------------------------+
+//| Check for close order conditions                                 |
+//+------------------------------------------------------------------+
+void CheckForClose()
+  {
+   double ma;
+//--- go trading only for first tiks of new bar
+   if(Volume[0]>1) return;
+//--- get Moving Average 
+   ma=iMA(NULL,0,MovingPeriod,MovingShift,MODE_SMA,PRICE_CLOSE,0);
+//---
+   for(int i=0;i<OrdersTotal();i++)
+     {
+      if(OrderSelect(i,SELECT_BY_POS,MODE_TRADES)==false) break;
+      if(OrderMagicNumber()!=MAGICMA || OrderSymbol()!=Symbol()) continue;
+      //--- check order type 
+      if(OrderType()==OP_BUY)
+        {
+         if(Open[1]>ma && Close[1]<ma)
+           {
+            if(!OrderClose(OrderTicket(),OrderLots(),Bid,3,White))
+               Print("OrderClose error ",GetLastError());
+           }
+         break;
+        }
+      if(OrderType()==OP_SELL)
+        {
+         if(Open[1]<ma && Close[1]>ma)
+           {
+            if(!OrderClose(OrderTicket(),OrderLots(),Ask,3,White))
+               Print("OrderClose error ",GetLastError());
+           }
+         break;
+        }
+     }
+//---
+  }
+//+------------------------------------------------------------------+
+//| OnTick function                                                  |
+//+------------------------------------------------------------------+
+void OnTick()
+  {
+//--- check for history and trading
+   if(Bars<100 || IsTradeAllowed()==false)
+      return;
+//--- calculate open orders by current symbol
+   if(CalculateCurrentOrders(Symbol())==0) CheckForOpen();
+   else                                    CheckForClose();
+//---
+  }
+//+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
+//|                                                     OdinV2.0.mq4 |
+//|                                         Black Wombat Innovations |
+//|                                             https://www.mql5.com |
+//+------------------------------------------------------------------+
+#property copyright "Black Wombat Innovations"
+#property link      "https://www.mql5.com"
+#property version   "1.00"
+#property strict
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+double timeFrameMinutes = 30;
+double nextTimeFrameMinutes = 60;
+double lastTimeFrameMinutes = 240;
+
+//extern double longerSlopeMinn = .00001;
+extern double longestSlopeMinn = .00001;
+double longerSlopeMinn =longestSlopeMinn;
+
+//extern double longerGapMinn = .00001;
+extern double longestGapMinn = .00001;
+double longerGapMinn =longestGapMinn;
+
+double lotSize = .01;
+
+double longerSlopeMin = longerSlopeMinn*30;
+double longestSlopeMin = longestSlopeMinn*30;
+double longerGapMin = longerGapMinn*30;
+double longestGapMin = longestGapMinn*30;
+
+extern double movingAverageTakeProfit = 10;
+extern double movingAverageStopLoss = 10;
+
+extern double movingAverageFastPeriod = 10;
+extern double movingAverageSlowPeriod = 40;
+
+
+
+int ThisBarTrade           =  0;
+double pips=0;
+int OnInit()
+  {
+
+  double tickSize =MarketInfo(Symbol(),MODE_TICKSIZE);
+   if(tickSize==.00001||tickSize==.001)
+    pips= tickSize*10;
+   else pips=tickSize;
+   printf("Robot Initiated");
+
+   return(INIT_SUCCEEDED);
+  }
+//+------------------------------------------------------------------+
+//| Expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+  {
+//---
+   
+  }
+//+------------------------------------------------------------------+
+//| Expert tick function                                             |
+//+------------------------------------------------------------------+
+void OnTick()
+  {
+if (Bars != ThisBarTrade ) {
+   ThisBarTrade = Bars;  // ensure only one trade opportunity per bar
+   // Trade logic goes here
+   
+   double timeFrameFastMa = iMA(NULL,timeFrameMinutes,movingAverageFastPeriod,0,1,0,0);
+double timeFrameSlowMa = iMA(NULL,timeFrameMinutes,movingAverageSlowPeriod,0,1,0,0);
+double timeFrameFastMaPrevious = iMA(NULL,timeFrameMinutes,movingAverageFastPeriod,0,1,0,1);
+double timeFrameSlowMaPrevious = iMA(NULL,timeFrameMinutes,movingAverageSlowPeriod,0,1,0,1);
+double timeFrameFastSlope = timeFrameFastMa-timeFrameFastMaPrevious;
+double timeFrameSlowSlope = timeFrameSlowMa-timeFrameSlowMaPrevious;
+//Print(timeFrameSlowSlope+" timeFrameSlowSlope");
+
+double timeFrameGapDevelopment = timeFrameFastSlope-timeFrameSlowSlope;
+//Print(timeFrameGapDevelopment+" timeFrameGapDevelopment");
+ 
+double longerTimeFrameFastMa = iMA(NULL,nextTimeFrameMinutes,movingAverageFastPeriod,0,1,0,0);
+double longerTimeFrameSlowMa = iMA(NULL,nextTimeFrameMinutes,movingAverageSlowPeriod,0,1,0,0);
+double longerTimeFrameFastMaPrevious = iMA(NULL,nextTimeFrameMinutes,movingAverageFastPeriod,0,1,0,1);
+double longerTimeFrameSlowMaPrevious = iMA(NULL,nextTimeFrameMinutes,movingAverageSlowPeriod,0,1,0,1);
+double longerTimeFrameFastSlope = longerTimeFrameFastMa-longerTimeFrameFastMaPrevious;
+double longerTimeFrameSlowSlope = longerTimeFrameSlowMa-longerTimeFrameSlowMaPrevious;
+//Print(longerTimeFrameSlowSlope+" longerTimeFrameSlowSlope");
+
+double longerTimeFrameGapDevelopment = longerTimeFrameFastSlope-longerTimeFrameSlowSlope;
+ //Print(longerTimeFrameGapDevelopment+" longerTimeFrameGapDevelopment");
+ 
+double longestTimeFrameFastMa = iMA(NULL,lastTimeFrameMinutes,movingAverageFastPeriod,0,1,0,0);
+double longestTimeFrameSlowMa = iMA(NULL,lastTimeFrameMinutes,movingAverageSlowPeriod,0,1,0,0);
+double longestTimeFrameFastMaPrevious = iMA(NULL,lastTimeFrameMinutes,movingAverageFastPeriod,0,1,0,1);
+double longestTimeFrameSlowMaPrevious = iMA(NULL,lastTimeFrameMinutes,movingAverageSlowPeriod,0,1,0,1);
+double longestTimeFrameFastSlope = longestTimeFrameFastMa-longestTimeFrameFastMaPrevious;
+double longestTimeFrameSlowSlope = longestTimeFrameSlowMa-longestTimeFrameSlowMaPrevious;
+//Print(longestTimeFrameSlowSlope+" longestTimeFrameSlowSlope");
+
+double longestTimeFrameGapDevelopment = longestTimeFrameFastSlope-longestTimeFrameSlowSlope;
+
+
+  if(/*longestTimeFrameSlowSlope>longestSlopeMin&&longestTimeFrameFastSlope>longestSlopeMin&&*/longerTimeFrameFastSlope>longerSlopeMin&&longerTimeFrameSlowSlope>longerSlopeMin/*&&longestTimeFrameGapDevelopment>longestGapMin*/&&longerTimeFrameGapDevelopment>longerGapMin&&timeFrameFastMaPrevious<timeFrameSlowMaPrevious&&timeFrameSlowMa<timeFrameFastMa){
+   double buyticket=OrderSend(Symbol(),OP_BUY,lotSize,Ask,3,Ask-(movingAverageStopLoss*pips),Ask+movingAverageTakeProfit*pips,NULL,0,0,Green);}
+ if(/*longestTimeFrameSlowSlope<-longestSlopeMin&&longestTimeFrameFastSlope<-longestSlopeMin&&*/longerTimeFrameFastSlope<-longerSlopeMin&&longerTimeFrameSlowSlope<-longerSlopeMin/*&&longestTimeFrameGapDevelopment<-longestGapMin*/&&longerTimeFrameGapDevelopment<-longerGapMin&&timeFrameFastMaPrevious>timeFrameSlowMaPrevious&&timeFrameSlowMa>timeFrameFastMa){
+   double sellticket=OrderSend(Symbol(),OP_SELL,lotSize,Bid,3,Bid+(movingAverageStopLoss*pips),Bid-movingAverageTakeProfit*pips,NULL,0,0,Red);}
+   
+  
+   
+   
+   
+   
+   
+   
+   
+   }
+   }
+  
+//+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
+//|                                                     OverLord.mq4 |
+//|                        Copyright 2017, MetaQuotes Software Corp. |
+//|                                             https://www.mql5.com |
+//+------------------------------------------------------------------+
+#property copyright "Copyright 2017, MetaQuotes Software Corp."
+#property link      "https://www.mql5.com"
+#property version   "1.00"
+#property strict
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+int ThisBarTrade =  0;//variable used to ensure only one trade per bar is performed
+double pips=0;//variable used to ensure only one trade per bar is performed
+
+
+
+extern double buyCutOff = .5;
+extern double sellCutOff = .5;
+extern double takeProfit = 5;
+extern double stopLoss = 5;
+
+
+
+
+double ADirection = 0; //proportion of last 5 1m ticks upward
+double A = 0; //proportion of last 10 1m ticks upward
+double MacD = 0; //proportion of last 20 1m ticks upward
+double BDirection = 0; //Slope of c from 20 mins ago to now
+double B = 0; //last 5 1m tick size and direction (average)
+double Stoc = 0; //last 10 1m tick size and direction (average)
+double CDirection = 0; //20SMA slope 20 periods ago till now
+double C = 0; //20SMA slope 20 periods ago till now
+
+
+double b01 = 0.00463569576961111; //intercept
+/*double b02 = -3.9261065357111; //intercept
+double b03 = -3.9261065357111; //intercept
+double b04 = -3.9261065357111; //intercept
+double b05 = -3.9261065357111; //intercept
+double b06 = -3.9261065357111; //intercept
+double b07 = -3.9261065357111; //intercept
+double b08 = -3.9261065357111; //intercept*/
+double b1 = -205.32670294845; 
+double b2 = -0.00266354368206214;
+double b3 = 0.315932630668033;
+/*double b4 = 273.836255458535;
+double b5 = -6736.20277635117;
+double b6 = -7267.06322147547;
+double b7 = 1094.17572965062;
+double b8 = 1094.17572965062;
+double b9 = 1094.17572965062;
+double b10 = 1094.17572965062;
+double b11 = 1094.17572965062;
+double b12 = 1094.17572965062;
+double b13 = 1094.17572965062;
+double b14= 1094.17572965062;
+double b15= 1094.17572965062;
+double b16= 1094.17572965062;
+double b17= 1094.17572965062;
+double b18= 1094.17572965062;
+double b19= 1094.17572965062;
+double b20= 1094.17572965062;
+double b21= 1094.17572965062;
+double b22= 1094.17572965062;
+double b23= 1094.17572965062;
+double b24= 1094.17572965062;
+double b25= 1094.17572965062;
+double b26= 1094.17572965062;
+double b27= 1094.17572965062;
+double b28= 1094.17572965062;
+double b29= 1094.17572965062;
+double b30= 1094.17572965062;*/
+
+
+
+
+int OnInit()
+{
+ double tickSize =MarketInfo(Symbol(),MODE_TICKSIZE);
+   if(tickSize==.00001||tickSize==.001)
+    pips= tickSize*100;
+   else pips=tickSize;
+ 
+   return(INIT_SUCCEEDED);
+   }
+//+------------------------------------------------------------------+
+//| Expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+  {
+//---
+   
+  }
+//+------------------------------------------------------------------+
+//| Expert tick function                                             |
+//+------------------------------------------------------------------+
+void OnTick()
+  {
+if (Bars != ThisBarTrade ) {
+   ThisBarTrade = Bars;  // ensure only one trade opportunity per bar
+   // Trade logic goes here
+    /*/ /To Be Removed
+    double fileHandle = FileOpen("testing.csv",FILE_CSV|FILE_READ | FILE_WRITE);
+   if(fileHandle!=INVALID_HANDLE){
+   
+      FileSeek(fileHandle, 0, SEEK_END); // Write at the end of the file.
+      string data = iTime(NULL,0,0)+"," + iClose(NULL,0,0)+","+ ADirection+","+ A+","+ BDirection+","+ B+","+ CDirection+","+ C+","+ MacD+","+ Stoc;
+      FileWrite(fileHandle,data);
+      FileClose(fileHandle);
+     }
+     else
+      Print("Failed");*/
+   
+   ADirection=getADirection();
+   A=getA();
+   MacD=getMacD();
+   BDirection=getBDirection();
+   B=getB();
+   Stoc=getStoc();
+   CDirection=getCDirection();
+   C=getC();
+   double logit=0;
+   
+ /*if(ADirection<0&&BDirection<0&&CDirection<0){
+ logit = b05+ b24*(b25*A+B+C*b23)+b21*(b22*Stoc+MacD) //21 22 23 24 25
+ }
+ if(ADirection>0&&BDirection<0&&CDirection<0){
+ logit = b08+ b36*(b37*A+B+C*b38)+b39*(b40*Stoc+MacD) //36 37 38 39 40
+ } 
+ if(ADirection>0&&BDirection>0&&CDirection<0){
+ logit = b07+ b31*(b32*A+B+C*b33)+b34*(b36*Stoc+MacD) //31 32 33 34 35
+ }
+ if(ADirection<0&&BDirection>0&&CDirection<0){
+ logit = b06+ b26*(b27*A+B+C*b28)+b29*(b30*Stoc+MacD) //26 27 28 29 30
+ }
+ if(ADirection<0&&BDirection<0&&CDirection>0){
+ logit = b01+ b2*(b1*A+B+C*b17)+b9*(b10*Stoc+MacD)  // 1 2 9 10 17
+ }
+ if(ADirection>0&&BDirection<0&&CDirection>0){
+ logit = b04+ b8*(b7*A+B+C*b20)+b16*(b15*Stoc+MacD)  //7 8 15 16 20
+ }
+ if(ADirection>0&&BDirection>0&&CDirection>0){
+ logit = b03+ b6*(b5*A+B+C*b19)+b13*(b14*Stoc+MacD) //5 6 13 14 19
+ } 
+ if(ADirection<0&&BDirection>0&&CDirection>0){
+ logit = b02+ b4*(b3*A+B+C*b18)+b12*(b11*Stoc+MacD)  //3 4 11 12 18
+ } 
+ 
+       
+if(logit!=0){      
+double probability= (exp(logit))/(1+(exp(logit)));  
+int ticketNumber;
+if(probability>buyCutOff)
+{ticketNumber= OrderSend(Symbol(), OP_BUY, 5, Close[0], 0, 0, 0, "BO exp:900", 1, 0, clrGreen);
+if(ticketNumber <0){Print("Not Working BUY");}}
+if(probability<sellCutOff)
+{ticketNumber=OrderSend(Symbol(), OP_SELL, 5, Close[0], 0, 0, 0, "BO exp:900", 1, 0, clrGreen);
+if(ticketNumber <0){Print("Not Working SELL");}}}*/
+
+//logit = b01+ b3*(b1*B+A)+b2*(Stoc) ;
+double expL = exp(logit);
+double probability = expL/(1+expL);
+Print(stopLoss*pips);
+if(probability>buyCutOff)
+{
+double buyticket=OrderSend(Symbol(),OP_BUY,.1,Ask,3,Ask-(stopLoss*pips),Ask+(takeProfit*pips),NULL,0,0,Green);
+}
+if(probability<sellCutOff)
+{
+ double sellticket=OrderSend(Symbol(),OP_SELL,.1,Bid,3,Bid+(stopLoss*pips),Bid-(takeProfit*pips),NULL,0,0,Red);
+}
+
+}}
+   
+  
+  ////--------------------------------------------------
+  double getProbability( double logit){//keep.0155
+ // double logit = 
+  //double logit = b0+b1*.475+b2*0.3+b3*.2+b4*-.0275+b5*-.00012+b6*-.00008+b7*.00000675;
+  double expL = exp(logit);
+
+  return  ((expL/(1+expL)));
+  }
+  //----------------------------------------------------
+  double getADirection(){
+   double didg;
+  didg= (iMA(NULL,0,5,0,0,0,0)-iMA(NULL,0,20,0,0,0,0));
+
+  if(didg >0){return 1;}
+  if(didg == 0){return 0;}
+  if(didg<0){return-1;}
+    return 0;
+  }
+  
+  //---------------------------------------------------
+  double getA(){
+   double didg;
+  didg= (iMA(NULL,0,5,0,0,0,0)-iMA(NULL,0,20,0,0,0,0));//51.73 
+// didg= (iMA("XAUUSD",0,5,0,0,0,0)-iMA("XAUUSD",0,20,0,0,0,0));  not tried
+  
+  return didg;
+  }
+ 
+  
+  //-----------------------------------------------------
+  double getMacD(){
+   double didg;
+   didg= (iMACD(NULL,0,12,26,9,0,0,0));
+
+  
+  return didg;
+  }
+  //------------------------------------------------------
+  double getBDirection(){
+   double didg;
+   didg= (iMA(NULL,0,20,0,0,0,0)-iMA(NULL,0,200,0,0,0,0));
+
+  if(didg >0){return 1;}
+  if(didg == 0){return 0;}
+  if(didg<0){return-1;}
+
+  
+  return 0;
+  }
+  //--------------------------------------------------
+  double getB(){
+   double didg;
+   didg= (iMA(NULL,0,20,0,0,0,0)-iMA(NULL,0,200,0,0,0,0));//51.67 
+ //didg= (iMA("XAUUSD",0,20,0,0,0,0)-iMA("XAUUSD",0,200,0,0,0,0)); not tried
+  
+  return didg;
+  }
+  //-------------------------------------------
+  double getStoc(){
+   double didg;
+   didg= (iStochastic(NULL,0,5,3,3,0,0,0,0)-50);
+ //didg= (iMA(NULL,0,20,0,0,0,0)-iMA(NULL,0,80,0,0,0,0));//51.42
+  
+  return didg;
+  }
+  //--------------------------------------
+  double getCDirection(){
+   double didg;
+   didg= (iMA(NULL,0,20,0,0,0,0)-iMA(NULL,0,2000,0,0,0,0));
+
+  if(didg >0){return 1;}
+  if(didg == 0){return 0;}
+  if(didg<0){return-1;}
+
+  
+  return 0;
+  }
+  
+//+------------------------------------------------------------------+
+ double getC(){
+   double didg;
+didg= (iMA(NULL,0,20,0,0,0,0)-iMA(NULL,0,2000,0,0,0,0));
+ 
+  
+  return didg;
+  }
+  
+//+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
+//|                                                    PIDTrader.mq4 |
+//|                                         Black Wombat Innovations |
+//|                                             https://www.mql5.com |
+//+------------------------------------------------------------------+
+#property copyright "Black Wombat Innovations"
+#property link      "https://www.mql5.com"
+#property version   "1.00"
+#property strict
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+int ThisBarTrade           =  0;
+double pips=0;
+
+extern int timeFrame=0;
+extern double tradeVolume=0;
+string tradeStartTime="22:00:00";
+string timeNow = "";
+double startingPrice =0;
+bool running = false;
+
+//extern double gainGain = 0;
+extern double maxLotSize = 0;
+extern double targetPips = 0;
+extern double proportionID=0;
+
+//P logic variables
+double orderGain = 0;
+
+//I logic variables
+double volume = 0;
+ double iProportionality=proportionID;
+ extern double iGain = 0;//increases the power of the integral term so in proportion to slope.
+
+
+//D logic variables
+extern double dAverage =0;//how many periods the slope is taked across
+double slope=0;
+double  dProportionality=1-proportionID;
+
+
+
+int OnInit()
+  {
+  double tickSize =MarketInfo(Symbol(),MODE_TICKSIZE);
+   if(tickSize==.00001||tickSize==.001)
+    pips= tickSize*10;
+   else pips=tickSize;
+ 
+   return(INIT_SUCCEEDED);
+  }
+//+------------------------------------------------------------------+
+//| Expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+  {
+//---
+   
+  }
+//+------------------------------------------------------------------+
+//| Expert tick function                                             |
+//+------------------------------------------------------------------+
+void OnTick()
+  {
+if (Bars != ThisBarTrade ) {
+   ThisBarTrade = Bars;  // ensure only one trade opportunity per bar
+   // Trade logic goes here
+   
+   
+   if(running==false){
+   timeNow="";
+ timeNow =  TimeToStr(Time[0], TIME_SECONDS);
+ Print(timeNow);
+ 
+ 
+ }
+ int timeCompare = StringCompare(timeNow,tradeStartTime,false);   
+ Print(timeCompare);
+   if(timeCompare==0){
+  
+    timeCompare = 1;
+    
+   running = true;
+   startingPrice= start();
+  
+   }
+   if((iClose(NULL,timeFrame,0)> (startingPrice+targetPips*pips))||(iClose(NULL,timeFrame,0)< (startingPrice-targetPips*pips)))
+   {running = false;}
+   if(running==true){
+  getOrderGain();
+  getVolume();
+  getSlope();
+  order();
+   }
+  
+   
+  }}
+
+double start()
+{
+double price = iClose(NULL,timeFrame,0);
+return price;}
+
+void getOrderGain(){
+double move = (startingPrice-iClose(NULL,timeFrame,0))*-1;
+orderGain = (move/(targetPips*pips))*maxLotSize;
+
+
+}
+void getVolume(){
+volume=volume+ iClose(NULL,timeFrame,0)-startingPrice;
+
+}
+void getSlope(){
+slope=(iClose(NULL,timeFrame,0)-iClose(NULL,timeFrame,dAverage))/dAverage;
+
+}
+void order(){
+double order = orderGain*((iGain*volume)+slope);
+
+if(order>0){
+double buyticket=OrderSend(Symbol(),OP_BUY,order,Ask,3,Ask-(targetPips*pips),Ask+(targetPips*pips),NULL,0,0,Green);
+
+}
+if(order<0){
+ double sellticket=OrderSend(Symbol(),OP_SELL,order,Bid,3,Bid+(targetPips*pips),Bid-(targetPips*pips),NULL,0,0,Red);
+   
+}
+
+}
+//+------------------------------------------------------------------+
+//|                                              TrendFollowerEA.mq4 |
+//|                        Copyright 2016, MetaQuotes Software Corp. |
+//|                                             https://www.mql5.com |
+//+------------------------------------------------------------------+
+#property copyright "Copyright 2016, MetaQuotes Software Corp."
+#property link      "https://www.mql5.com"
+#property version   "1.00"
+#property strict
+
+//DISCRIPTION
+//uses the slope Moving average to trigger buy/sell/stop
+
+//stopMa
+extern int stopMa = 16;
+ int stopMaShift=0;
+ int stopMaMeathod=0;
+ int stopMaAppliedTo=0;
+
+//fastMa
+extern int fastMa = 16;
+ int fastMaShift=0;
+ int fastMaMeathod=0;
+ int fastMaAppliedTo=0;
+
+extern double EmergencyStopLoss = 50;
+extern double takeProfit=5;
+ double pips=0;
+
+ int magicNumber = 1000;
+
+extern double LongTrigger = 1;
+extern double LongStop = 1;
+
+extern double ShortTrigger = -20;
+extern double ShortStop = -20;
+
+
+extern int slopeSensitivity = 2;
+extern int stopSlopeSensitivity = 2;
+
+double previousSlope=0;
+int ThisBarTrade           =  0;
+
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+int OnInit()
+  {
+//---
+  double tickSize =MarketInfo(Symbol(),MODE_TICKSIZE);
+   if(tickSize==.00001||tickSize==.001)
+    pips= tickSize*10;
+   else pips=tickSize;
+   printf("Robot Initiated");
+//---
+   return(INIT_SUCCEEDED);
+  }
+//+------------------------------------------------------------------+
+//| Expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+  {
+//---
+   
+  }
+//+------------------------------------------------------------------+
+//| Expert tick function                                             |
+//+------------------------------------------------------------------+
+void OnTick()
+  {
+//---                            reffer to menu in appled (simple, on the close)(1 is candle which is just closed)
+if (Bars != ThisBarTrade ) {
+   ThisBarTrade = Bars;  // ensure only one trade opportunity per bar
+   // Trade logic goes here
+
+ double lotSize = 1;
+
+  double currentFast = iMA(NULL,0,fastMa,fastMaShift,fastMaMeathod,fastMaAppliedTo,1);
+  double previousFast= iMA(NULL,0,fastMa,fastMaShift,fastMaMeathod,fastMaAppliedTo,1+slopeSensitivity);
+    double currentStop = iMA(NULL,0,stopMa,stopMaShift,stopMaMeathod,stopMaAppliedTo,1);
+  double previousStop= iMA(NULL,0,stopMa,stopMaShift,stopMaMeathod,stopMaAppliedTo,1+stopSlopeSensitivity);
+  
+  double slope = (currentFast-previousFast)/slopeSensitivity;
+   double stopSlope = (currentStop-previousStop)/stopSlopeSensitivity;
+   Print(previousSlope,ShortTrigger,LongTrigger);
+  double LTrigger=LongTrigger/100000.0;
+   double LStop=LongStop/100000.0;
+  double STrigger=ShortTrigger/100000.0;
+   double SStop=ShortStop/100000.0;
+   
+  if(previousSlope!=0){
+  
+       if(previousSlope<LTrigger&& slope>LTrigger/*&&stopSlope>LStop*/)
+  { 
+  double buyticket=OrderSend(Symbol(),OP_BUY,lotSize,Ask,3,Ask-(EmergencyStopLoss*pips),Ask+takeProfit*pips,NULL,magicNumber+1,0,Green);
+ 
+    }
+    
+    
+      
+      if(previousSlope>STrigger&& slope<STrigger/*&&stopSlope<SStop*/)
+   { double sellticket=OrderSend(Symbol(),OP_SELL,lotSize,Bid,3,Bid+(EmergencyStopLoss*pips),Bid-takeProfit*pips,NULL,magicNumber-1,0,Red);
+   
+      }
+  }
+      previousSlope=slope;
+   Print(previousSlope,STrigger,LTrigger);
+   
+ /*
+  
+for (int i = 0; i < OrdersTotal(); i++)
+{
+if(OrderSelect(i,SELECT_BY_POS)==true)
+{
+
+
+//Short Stop Check
+if(OrderMagicNumber()==magicNumber-1&&stopSlope>=SStop)
+{
+OrderClose(OrderTicket(),OrderLots() , Ask,3, Red);
+}
+
+//Long Trailing Stop Adjustment
+if(OrderMagicNumber()==magicNumber+1&&stopSlope<=LStop)
+{
+OrderClose(OrderTicket(),OrderLots() , Bid,3, Red);
+}
+
+
+}      
+}
+  
+  */
+  //+------------------------------------------------------------------+
+//|                                    Closed_Trade_History_v1_1.mq4 |
+//|                                          Copyright © 2009, Wolfe |
+//|                                              xxxxwolfe@gmail.com |
+//+------------------------------------------------------------------+
+#property copyright "Copyright © 2009, Wolfe"
+#property link      "xxxxwolfe@gmail.com"
+
+extern string Pair_A = "USDCHF";
+extern string Pair_B = "GBPJPY";
+extern string Pair_C = "EURUSD";
+extern string Pair_D = "USDJPY";
+extern string Pair_E = "AUDUSD";
+extern string Pair_F = "USDCAD";
+extern string Pair_G = "EURGBP";
+extern string Pair_H = "EURCHF";
+extern string Pair_I = "EURJPY";
+extern string Pair_J = "GBPJPY";
+extern color  EA_Name_Color = Blue;
+extern color  Label_Color  = Red;
+extern color  Number_Color = White;
+extern color  Pairs_Color  = Lime;
+extern color  Totals_Color = DeepPink;
+
+//+------------------------------------------------------------------+
+//| expert initialization function                                   |
+//+------------------------------------------------------------------+
+int init()
+  {
+  
+   ObjectsDeleteAll(0);
+   
+   Comment("\nCLOSED TRADE HISTORY Initialized,",
+           "\n",
+           "\nWaiting For Next Tick...");
+  
+   return(0);
+  }
+//+------------------------------------------------------------------+
+//| expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+int deinit()
+  {
+  
+   ObjectsDeleteAll(0);
+
+   return(0);
+  }
+//+------------------------------------------------------------------+
+//| expert start function                                            |
+//+------------------------------------------------------------------+
+int start()
+  {
+  
+  Comment("\n");
+  
+  int Closed_Order_Total = OrdersHistoryTotal();
+ 
+  int Pos=0;
+  
+  double OT_Pair_A=0;
+  double OT_Pair_B=0;
+  double OT_Pair_C=0;
+  double OT_Pair_D=0;
+  double OT_Pair_E=0;
+  double OT_Pair_F=0;
+  double OT_Pair_G=0;
+  double OT_Pair_H=0;
+  double OT_Pair_I=0;
+  double OT_Pair_J=0;
+  
+  double OP_Pair_A=0;
+  double OP_Pair_B=0;
+  double OP_Pair_C=0;
+  double OP_Pair_D=0;
+  double OP_Pair_E=0;
+  double OP_Pair_F=0;
+  double OP_Pair_G=0;
+  double OP_Pair_H=0;
+  double OP_Pair_I=0;
+  double OP_Pair_J=0;
+  
+  double OW_Pair_A=0;
+  double OW_Pair_B=0;
+  double OW_Pair_C=0;
+  double OW_Pair_D=0;
+  double OW_Pair_E=0;
+  double OW_Pair_F=0;
+  double OW_Pair_G=0;
+  double OW_Pair_H=0;
+  double OW_Pair_I=0;
+  double OW_Pair_J=0;
+  
+  double WT_Pair_A=0;
+  double WT_Pair_B=0;
+  double WT_Pair_C=0;
+  double WT_Pair_D=0;
+  double WT_Pair_E=0;
+  double WT_Pair_F=0;
+  double WT_Pair_G=0;
+  double WT_Pair_H=0;
+  double WT_Pair_I=0;
+  double WT_Pair_J=0;
+  
+  double OL_Pair_A=0;
+  double OL_Pair_B=0;
+  double OL_Pair_C=0;
+  double OL_Pair_D=0;
+  double OL_Pair_E=0;
+  double OL_Pair_F=0;
+  double OL_Pair_G=0;
+  double OL_Pair_H=0;
+  double OL_Pair_I=0;
+  double OL_Pair_J=0;
+  
+  double LT_Pair_A=0;
+  double LT_Pair_B=0;
+  double LT_Pair_C=0;
+  double LT_Pair_D=0;
+  double LT_Pair_E=0;
+  double LT_Pair_F=0;
+  double LT_Pair_G=0;
+  double LT_Pair_H=0;
+  double LT_Pair_I=0;
+  double LT_Pair_J=0;
+  
+  double Total_Closed=0;
+  double Total_Profit=0;
+  double Total_Wins=0;
+  double Total_Win_Profit=0;
+  double Total_Losses=0;
+  double Total_Loss_Profit=0;
+  
+  while (Closed_Order_Total > Pos)
+   {
+    if (OrderSelect(Pos,SELECT_BY_POS,MODE_HISTORY))
+     {
+      string OS = OrderSymbol();
+      double OP = OrderProfit();
+      if(OP >= 0)
+       
+      
+      Print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  ",GetLastError());
+      
+      if (OS == Pair_A) {OT_Pair_A++; OP_Pair_A = OP_Pair_A+OP; if(OP>=0){OW_Pair_A++; WT_Pair_A = WT_Pair_A+OP;} if(OP<0){OL_Pair_A++; LT_Pair_A = LT_Pair_A+OP;}}
+      if (OS == Pair_B) {OT_Pair_B++; OP_Pair_B = OP_Pair_B+OP; if(OP>=0){OW_Pair_B++; WT_Pair_B = WT_Pair_B+OP;} if(OP<0){OL_Pair_B++; LT_Pair_B = LT_Pair_B+OP;}}
+      if (OS == Pair_C) {OT_Pair_C++; OP_Pair_C = OP_Pair_C+OP; if(OP>=0){OW_Pair_C++; WT_Pair_C = WT_Pair_C+OP;} if(OP<0){OL_Pair_C++; LT_Pair_C = LT_Pair_C+OP;}}
+      if (OS == Pair_D) {OT_Pair_D++; OP_Pair_D = OP_Pair_D+OP; if(OP>=0){OW_Pair_D++; WT_Pair_D = WT_Pair_D+OP;} if(OP<0){OL_Pair_D++; LT_Pair_D = LT_Pair_D+OP;}}
+      if (OS == Pair_E) {OT_Pair_E++; OP_Pair_E = OP_Pair_E+OP; if(OP>=0){OW_Pair_E++; WT_Pair_E = WT_Pair_E+OP;} if(OP<0){OL_Pair_E++; LT_Pair_E = LT_Pair_E+OP;}}
+      if (OS == Pair_F) {OT_Pair_F++; OP_Pair_F = OP_Pair_F+OP; if(OP>=0){OW_Pair_F++; WT_Pair_F = WT_Pair_F+OP;} if(OP<0){OL_Pair_F++; LT_Pair_F = LT_Pair_F+OP;}}
+      if (OS == Pair_G) {OT_Pair_G++; OP_Pair_G = OP_Pair_G+OP; if(OP>=0){OW_Pair_G++; WT_Pair_G = WT_Pair_G+OP;} if(OP<0){OL_Pair_G++; LT_Pair_G = LT_Pair_G+OP;}}
+      if (OS == Pair_H) {OT_Pair_H++; OP_Pair_H = OP_Pair_H+OP; if(OP>=0){OW_Pair_H++; WT_Pair_H = WT_Pair_H+OP;} if(OP<0){OL_Pair_H++; LT_Pair_H = LT_Pair_H+OP;}}
+      if (OS == Pair_I) {OT_Pair_I++; OP_Pair_I = OP_Pair_I+OP; if(OP>=0){OW_Pair_I++; WT_Pair_I = WT_Pair_I+OP;} if(OP<0){OL_Pair_I++; LT_Pair_I = LT_Pair_I+OP;}}
+      if (OS == Pair_J) {OT_Pair_J++; OP_Pair_J = OP_Pair_J+OP; if(OP>=0){OW_Pair_J++; WT_Pair_J = WT_Pair_J+OP;} if(OP<0){OL_Pair_J++; LT_Pair_J = LT_Pair_J+OP;}}
+      
+      
+     }
+    Pos++;
+    
+    string sOT_Pair_A = DoubleToStr(OT_Pair_A,0);
+    string sOT_Pair_B = DoubleToStr(OT_Pair_B,0);
+    string sOT_Pair_C = DoubleToStr(OT_Pair_C,0);
+    string sOT_Pair_D = DoubleToStr(OT_Pair_D,0);
+    string sOT_Pair_E = DoubleToStr(OT_Pair_E,0);
+    string sOT_Pair_F = DoubleToStr(OT_Pair_F,0);
+    string sOT_Pair_G = DoubleToStr(OT_Pair_G,0);
+    string sOT_Pair_H = DoubleToStr(OT_Pair_H,0);
+    string sOT_Pair_I = DoubleToStr(OT_Pair_I,0);
+    string sOT_Pair_J = DoubleToStr(OT_Pair_J,0);
+    
+    string sOP_Pair_A = DoubleToStr(OP_Pair_A,2);
+    string sOP_Pair_B = DoubleToStr(OP_Pair_B,2);
+    string sOP_Pair_C = DoubleToStr(OP_Pair_C,2);
+    string sOP_Pair_D = DoubleToStr(OP_Pair_D,2);
+    string sOP_Pair_E = DoubleToStr(OP_Pair_E,2);
+    string sOP_Pair_F = DoubleToStr(OP_Pair_F,2);
+    string sOP_Pair_G = DoubleToStr(OP_Pair_G,2);
+    string sOP_Pair_H = DoubleToStr(OP_Pair_H,2);
+    string sOP_Pair_I = DoubleToStr(OP_Pair_I,2);
+    string sOP_Pair_J = DoubleToStr(OP_Pair_J,2);
+    
+    string sOW_Pair_A = DoubleToStr(OW_Pair_A,0);
+    string sOW_Pair_B = DoubleToStr(OW_Pair_B,0);
+    string sOW_Pair_C = DoubleToStr(OW_Pair_C,0);
+    string sOW_Pair_D = DoubleToStr(OW_Pair_D,0);
+    string sOW_Pair_E = DoubleToStr(OW_Pair_E,0);
+    string sOW_Pair_F = DoubleToStr(OW_Pair_F,0);
+    string sOW_Pair_G = DoubleToStr(OW_Pair_G,0);
+    string sOW_Pair_H = DoubleToStr(OW_Pair_H,0);
+    string sOW_Pair_I = DoubleToStr(OW_Pair_I,0);
+    string sOW_Pair_J = DoubleToStr(OW_Pair_J,0);
+    
+    string sWT_Pair_A = DoubleToStr(WT_Pair_A,2);
+    string sWT_Pair_B = DoubleToStr(WT_Pair_B,2);
+    string sWT_Pair_C = DoubleToStr(WT_Pair_C,2);
+    string sWT_Pair_D = DoubleToStr(WT_Pair_D,2);
+    string sWT_Pair_E = DoubleToStr(WT_Pair_E,2);
+    string sWT_Pair_F = DoubleToStr(WT_Pair_F,2);
+    string sWT_Pair_G = DoubleToStr(WT_Pair_G,2);
+    string sWT_Pair_H = DoubleToStr(WT_Pair_H,2);
+    string sWT_Pair_I = DoubleToStr(WT_Pair_I,2);
+    string sWT_Pair_J = DoubleToStr(WT_Pair_J,2);
+    
+    string sOL_Pair_A = DoubleToStr(OL_Pair_A,0);
+    string sOL_Pair_B = DoubleToStr(OL_Pair_B,0);
+    string sOL_Pair_C = DoubleToStr(OL_Pair_C,0);
+    string sOL_Pair_D = DoubleToStr(OL_Pair_D,0);
+    string sOL_Pair_E = DoubleToStr(OL_Pair_E,0);
+    string sOL_Pair_F = DoubleToStr(OL_Pair_F,0);
+    string sOL_Pair_G = DoubleToStr(OL_Pair_G,0);
+    string sOL_Pair_H = DoubleToStr(OL_Pair_H,0);
+    string sOL_Pair_I = DoubleToStr(OL_Pair_I,0);
+    string sOL_Pair_J = DoubleToStr(OL_Pair_J,0);
+    
+    string sLT_Pair_A = DoubleToStr(LT_Pair_A,2);
+    string sLT_Pair_B = DoubleToStr(LT_Pair_B,2);
+    string sLT_Pair_C = DoubleToStr(LT_Pair_C,2);
+    string sLT_Pair_D = DoubleToStr(LT_Pair_D,2);
+    string sLT_Pair_E = DoubleToStr(LT_Pair_E,2);
+    string sLT_Pair_F = DoubleToStr(LT_Pair_F,2);
+    string sLT_Pair_G = DoubleToStr(LT_Pair_G,2);
+    string sLT_Pair_H = DoubleToStr(LT_Pair_H,2);
+    string sLT_Pair_I = DoubleToStr(LT_Pair_I,2);
+    string sLT_Pair_J = DoubleToStr(LT_Pair_J,2);
+    
+   }
+   
+   string sTotal_Closed = DoubleToStr((OT_Pair_A+OT_Pair_B+OT_Pair_C+OT_Pair_D+OT_Pair_E+
+                                       OT_Pair_F+OT_Pair_G+OT_Pair_H+OT_Pair_I+OT_Pair_J),0);
+   
+   string sTotal_Profit = DoubleToStr((OP_Pair_A+OP_Pair_B+OP_Pair_C+OP_Pair_D+OP_Pair_E+
+                                       OP_Pair_F+OP_Pair_G+OP_Pair_H+OP_Pair_I+OP_Pair_J),2);
+   
+   string sTotal_Wins = DoubleToStr((OW_Pair_A+OW_Pair_B+OW_Pair_C+OW_Pair_D+OW_Pair_E+
+                                     OW_Pair_F+OW_Pair_G+OW_Pair_H+OW_Pair_I+OW_Pair_J),0);
+   
+   string sTotal_Win_Profit = DoubleToStr((WT_Pair_A+WT_Pair_B+WT_Pair_C+WT_Pair_D+WT_Pair_E+
+                                           WT_Pair_F+WT_Pair_G+WT_Pair_H+WT_Pair_I+WT_Pair_J),2);
+   
+   string sTotal_Losses = DoubleToStr((OL_Pair_A+OL_Pair_B+OL_Pair_C+OL_Pair_D+OL_Pair_E+
+                                       OL_Pair_F+OL_Pair_G+OL_Pair_H+OL_Pair_I+OL_Pair_J),0);
+   
+   string sTotal_Loss_Profit = DoubleToStr((LT_Pair_A+LT_Pair_B+LT_Pair_C+LT_Pair_D+LT_Pair_E+
+                                            LT_Pair_F+LT_Pair_G+LT_Pair_H+LT_Pair_I+LT_Pair_J),2);
+   
+   SetLabel("1","Closed Trade History",10,20,"Courier",15,EA_Name_Color);
+   
+   SetLabel("2","SYMBOL",10,50,"Courier",12,Red); 
+   SetLabel("3",Pair_A,10,80,"Courier",10,Lime);
+   SetLabel("4",Pair_B,10,110,"Courier",10,Lime);
+   SetLabel("5",Pair_C,10,140,"Courier",10,Lime);
+   SetLabel("6",Pair_D,10,170,"Courier",10,Lime);
+   SetLabel("7",Pair_E,10,200,"Courier",10,Lime);
+   SetLabel("8",Pair_F,10,230,"Courier",10,Lime);
+   SetLabel("9",Pair_G,10,260,"Courier",10,Lime);
+   SetLabel("10",Pair_H,10,290,"Courier",10,Lime);
+   SetLabel("11",Pair_I,10,320,"Courier",10,Lime);
+   SetLabel("12",Pair_J,10,350,"Courier",10,Lime); 
+   
+   SetLabel("13","CLOSED",100,50,"Courier",12,Label_Color);
+   SetLabel("14",sOT_Pair_A,100,80,"Courier",10,Number_Color);
+   SetLabel("15",sOT_Pair_B,100,110,"Courier",10,Number_Color);
+   SetLabel("16",sOT_Pair_C,100,140,"Courier",10,Number_Color);
+   SetLabel("17",sOT_Pair_D,100,170,"Courier",10,Number_Color);
+   SetLabel("18",sOT_Pair_E,100,200,"Courier",10,Number_Color);
+   SetLabel("19",sOT_Pair_F,100,230,"Courier",10,Number_Color);
+   SetLabel("20",sOT_Pair_G,100,260,"Courier",10,Number_Color);
+   SetLabel("21",sOT_Pair_H,100,290,"Courier",10,Number_Color);
+   SetLabel("22",sOT_Pair_I,100,320,"Courier",10,Number_Color);
+   SetLabel("23",sOT_Pair_J,100,350,"Courier",10,Number_Color);
+   
+   SetLabel("24","PROFIT",200,50,"Courier",12,Label_Color);
+   SetLabel("25",sOP_Pair_A,200,80,"Courier",10,Number_Color);
+   SetLabel("26",sOP_Pair_B,200,110,"Courier",10,Number_Color);
+   SetLabel("27",sOP_Pair_C,200,140,"Courier",10,Number_Color);
+   SetLabel("28",sOP_Pair_D,200,170,"Courier",10,Number_Color);
+   SetLabel("29",sOP_Pair_E,200,200,"Courier",10,Number_Color);
+   SetLabel("30",sOP_Pair_F,200,230,"Courier",10,Number_Color);
+   SetLabel("31",sOP_Pair_G,200,260,"Courier",10,Number_Color);
+   SetLabel("32",sOP_Pair_H,200,290,"Courier",10,Number_Color);
+   SetLabel("33",sOP_Pair_I,200,320,"Courier",10,Number_Color);
+   SetLabel("34",sOP_Pair_J,200,350,"Courier",10,Number_Color);
+   
+   SetLabel("35","WINS",310,50,"Courier",12,Label_Color);
+   SetLabel("36",sOW_Pair_A,310,80,"Courier",10,Number_Color);
+   SetLabel("37",sOW_Pair_B,310,110,"Courier",10,Number_Color);
+   SetLabel("38",sOW_Pair_C,310,140,"Courier",10,Number_Color);
+   SetLabel("39",sOW_Pair_D,310,170,"Courier",10,Number_Color);
+   SetLabel("40",sOW_Pair_E,310,200,"Courier",10,Number_Color);
+   SetLabel("41",sOW_Pair_F,310,230,"Courier",10,Number_Color);
+   SetLabel("42",sOW_Pair_G,310,260,"Courier",10,Number_Color);
+   SetLabel("43",sOW_Pair_H,310,290,"Courier",10,Number_Color);
+   SetLabel("44",sOW_Pair_I,310,320,"Courier",10,Number_Color);
+   SetLabel("45",sOW_Pair_J,310,350,"Courier",10,Number_Color);
+   
+   SetLabel("46","WIN PROFIT",400,50,"Courier",12,Label_Color);
+   SetLabel("47",sWT_Pair_A,400,80,"Courier",10,Number_Color);
+   SetLabel("48",sWT_Pair_B,400,110,"Courier",10,Number_Color);
+   SetLabel("49",sWT_Pair_C,400,140,"Courier",10,Number_Color);
+   SetLabel("50",sWT_Pair_D,400,170,"Courier",10,Number_Color);
+   SetLabel("51",sWT_Pair_E,400,200,"Courier",10,Number_Color);
+   SetLabel("52",sWT_Pair_F,400,230,"Courier",10,Number_Color);
+   SetLabel("53",sWT_Pair_G,400,260,"Courier",10,Number_Color);
+   SetLabel("54",sWT_Pair_H,400,290,"Courier",10,Number_Color);
+   SetLabel("55",sWT_Pair_I,400,320,"Courier",10,Number_Color);
+   SetLabel("56",sWT_Pair_J,400,350,"Courier",10,Number_Color);
+   
+   SetLabel("57","LOSSES",540,50,"Courier",12,Label_Color);
+   SetLabel("58",sOL_Pair_A,540,80,"Courier",10,Number_Color);
+   SetLabel("59",sOL_Pair_B,540,110,"Courier",10,Number_Color);
+   SetLabel("60",sOL_Pair_C,540,140,"Courier",10,Number_Color);
+   SetLabel("61",sOL_Pair_D,540,170,"Courier",10,Number_Color);
+   SetLabel("62",sOL_Pair_E,540,200,"Courier",10,Number_Color);
+   SetLabel("63",sOL_Pair_F,540,230,"Courier",10,Number_Color);
+   SetLabel("64",sOL_Pair_G,540,260,"Courier",10,Number_Color);
+   SetLabel("65",sOL_Pair_H,540,290,"Courier",10,Number_Color);
+   SetLabel("66",sOL_Pair_I,540,320,"Courier",10,Number_Color);
+   SetLabel("67",sOL_Pair_J,540,350,"Courier",10,Number_Color);
+
+   SetLabel("68","LOSS PROFIT",650,50,"Courier",12,Label_Color);
+   SetLabel("69",sLT_Pair_A,650,80,"Courier",10,Number_Color);
+   SetLabel("70",sLT_Pair_B,650,110,"Courier",10,Number_Color);
+   SetLabel("71",sLT_Pair_C,650,140,"Courier",10,Number_Color);
+   SetLabel("72",sLT_Pair_D,650,170,"Courier",10,Number_Color);
+   SetLabel("73",sLT_Pair_E,650,200,"Courier",10,Number_Color);
+   SetLabel("74",sLT_Pair_F,650,230,"Courier",10,Number_Color);
+   SetLabel("75",sLT_Pair_G,650,260,"Courier",10,Number_Color);
+   SetLabel("76",sLT_Pair_H,650,290,"Courier",10,Number_Color);
+   SetLabel("77",sLT_Pair_I,650,320,"Courier",10,Number_Color);
+   SetLabel("78",sLT_Pair_J,650,350,"Courier",10,Number_Color);
+   
+   SetLabel("79","TOTAL",10,380,"Courier",12,Totals_Color);
+   SetLabel("80",sTotal_Closed,100,380,"Courier",10,Totals_Color);
+   SetLabel("81",sTotal_Profit,200,380,"Courier",10,Totals_Color);
+   SetLabel("82",sTotal_Wins,310,380,"Courier",10,Totals_Color);
+   SetLabel("83",sTotal_Win_Profit,400,380,"Courier",10,Totals_Color);
+   SetLabel("84",sTotal_Losses,540,380,"Courier",10,Totals_Color);
+   SetLabel("85",sTotal_Loss_Profit,650,380,"Courier",10,Totals_Color);
+      
+   return(0);
+  }
+//+------------------------------------------------------------------+
+
+
+
+void SetLabel(string Name, string Text, int x, int y, string Font, int Size, color Color)
+  {
+   if(ObjectFind(Name) == -1)
+   ObjectCreate  (Name, OBJ_LABEL, 0, 0, 0);
+   ObjectSet     (Name, OBJPROP_XDISTANCE, x);
+   ObjectSet     (Name, OBJPROP_YDISTANCE, y);
+   ObjectSetText (Name, Text, Size, Font, Color);
+//+------------------------------------------------------------------+
+//|                                                   crossingMA.mq4 |
+//|                        Copyright 2017, MetaQuotes Software Corp. |
+//|                                             https://www.mql5.com |
+//+------------------------------------------------------------------+
+#property copyright "Copyright 2017, MetaQuotes Software Corp."
+#property link      "https://www.mql5.com"
+#property version   "1.00"
+#property strict
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+
+int ThisBarTrade =  0;//variable used to ensure only one trade per bar is performed
+
+
+
+int OnInit()
+  {
+//---
+   
+//---
+   return(INIT_SUCCEEDED);
+  }
+//+------------------------------------------------------------------+
+//| Expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+  {
+//---
+   
+  }
+//+------------------------------------------------------------------+
+//| Expert tick function                                             |
+//+------------------------------------------------------------------+
+void OnTick()
+  {  if (Bars != ThisBarTrade ) {
+   ThisBarTrade = Bars; 
+
+
+
+
+
+
+
+
+
+   
+  }}
+//+------------------------------------------------------------------+
+﻿//+------------------------------------------------------------------+
+//|                                             Period_Converter.mq4 |
+//|                      Copyright © 2005, MetaQuotes Software Corp. |
+//|                                        http://www.metaquotes.net |
+//+------------------------------------------------------------------+
+#property copyright "Copyright © 2005, MetaQuotes Software Corp."
+#property link      "http://www.metaquotes.net"
+#property show_inputs
+#include <WinUser32.mqh>
+
+extern int ExtPeriodMultiplier=3; // new period multiplier factor
+int        ExtHandle=-1;
+//+------------------------------------------------------------------+
+//| script program start function                                    |
+//+------------------------------------------------------------------+
+int start()
+  {
+   int    i, start_pos, i_time, time0, last_fpos, periodseconds;
+   double d_open, d_low, d_high, d_close, d_volume, last_volume;
+   int    hwnd=0,cnt=0;
+//---- History header
+   int    version=400;
+   string c_copyright;
+   string c_symbol=Symbol();
+   int    i_period=Period()*ExtPeriodMultiplier;
+   int    i_digits=Digits;
+   int    i_unused[13];
+//----  
+   ExtHandle=FileOpenHistory(c_symbol+i_period+".hst", FILE_BIN|FILE_WRITE);
+   if(ExtHandle < 0) return(-1);
+//---- write history file header
+   c_copyright="(C)opyright 2003, MetaQuotes Software Corp.";
+   FileWriteInteger(ExtHandle, version, LONG_VALUE);
+   FileWriteString(ExtHandle, c_copyright, 64);
+   FileWriteString(ExtHandle, c_symbol, 12);
+   FileWriteInteger(ExtHandle, i_period, LONG_VALUE);
+   FileWriteInteger(ExtHandle, i_digits, LONG_VALUE);
+   FileWriteInteger(ExtHandle, 0, LONG_VALUE);       //timesign
+   FileWriteInteger(ExtHandle, 0, LONG_VALUE);       //last_sync
+   FileWriteArray(ExtHandle, i_unused, 0, 13);
+//---- write history file
+   periodseconds=i_period*60;
+   start_pos=Bars-1;
+   d_open=Open[start_pos];
+   d_low=Low[start_pos];
+   d_high=High[start_pos];
+   d_volume=Volume[start_pos];
+   //---- normalize open time
+   i_time=Time[start_pos]/periodseconds;
+   i_time*=periodseconds;
+   for(i=start_pos-1;i>=0; i--)
+     {
+      time0=Time[i];
+      if(time0>=i_time+periodseconds || i==0)
+        {
+         if(i==0 && time0<i_time+periodseconds)
+           {
+            d_volume+=Volume[0];
+            if (Low[0]<d_low)   d_low=Low[0];
+            if (High[0]>d_high) d_high=High[0];
+            d_close=Close[0];
+           }
+         last_fpos=FileTell(ExtHandle);
+         last_volume=Volume[i];
+         FileWriteInteger(ExtHandle, i_time, LONG_VALUE);
+         FileWriteDouble(ExtHandle, d_open, DOUBLE_VALUE);
+         FileWriteDouble(ExtHandle, d_low, DOUBLE_VALUE);
+         FileWriteDouble(ExtHandle, d_high, DOUBLE_VALUE);
+         FileWriteDouble(ExtHandle, d_close, DOUBLE_VALUE);
+         FileWriteDouble(ExtHandle, d_volume, DOUBLE_VALUE);
+         FileFlush(ExtHandle);
+         cnt++;
+         if(time0>=i_time+periodseconds)
+           {
+            i_time=time0/periodseconds;
+            i_time*=periodseconds;
+            d_open=Open[i];
+            d_low=Low[i];
+            d_high=High[i];
+            d_close=Close[i];
+            d_volume=last_volume;
+           }
+        }
+       else
+        {
+         d_volume+=Volume[i];
+         if (Low[i]<d_low)   d_low=Low[i];
+         if (High[i]>d_high) d_high=High[i];
+         d_close=Close[i];
+        }
+     } 
+   FileFlush(ExtHandle);
+   Print(cnt," record(s) written");
+//---- collect incoming ticks
+   int last_time=LocalTime()-5;
+   while(IsStopped()==false)
+     {
+      int cur_time=LocalTime();
+      //---- check for new rates
+      if(RefreshRates())
+        {
+         time0=Time[0];
+         FileSeek(ExtHandle,last_fpos,SEEK_SET);
+         //---- is there current bar?
+         if(time0<i_time+periodseconds)
+           {
+            d_volume+=Volume[0]-last_volume;
+            last_volume=Volume[0]; 
+            if (Low[0]<d_low) d_low=Low[0];
+            if (High[0]>d_high) d_high=High[0];
+            d_close=Close[0];
+           }
+         else
+           {
+            //---- no, there is new bar
+            d_volume+=Volume[1]-last_volume;
+            if (Low[1]<d_low) d_low=Low[1];
+            if (High[1]>d_high) d_high=High[1];
+            //---- write previous bar remains
+            FileWriteInteger(ExtHandle, i_time, LONG_VALUE);
+            FileWriteDouble(ExtHandle, d_open, DOUBLE_VALUE);
+            FileWriteDouble(ExtHandle, d_low, DOUBLE_VALUE);
+            FileWriteDouble(ExtHandle, d_high, DOUBLE_VALUE);
+            FileWriteDouble(ExtHandle, d_close, DOUBLE_VALUE);
+            FileWriteDouble(ExtHandle, d_volume, DOUBLE_VALUE);
+            last_fpos=FileTell(ExtHandle);
+            //----
+            i_time=time0/periodseconds;
+            i_time*=periodseconds;
+            d_open=Open[0];
+            d_low=Low[0];
+            d_high=High[0];
+            d_close=Close[0];
+            d_volume=Volume[0];
+            last_volume=d_volume;
+           }
+         //----
+         FileWriteInteger(ExtHandle, i_time, LONG_VALUE);
+         FileWriteDouble(ExtHandle, d_open, DOUBLE_VALUE);
+         FileWriteDouble(ExtHandle, d_low, DOUBLE_VALUE);
+         FileWriteDouble(ExtHandle, d_high, DOUBLE_VALUE);
+         FileWriteDouble(ExtHandle, d_close, DOUBLE_VALUE);
+         FileWriteDouble(ExtHandle, d_volume, DOUBLE_VALUE);
+         FileFlush(ExtHandle);
+         //----
+         if(hwnd==0)
+           {
+            hwnd=WindowHandle(Symbol(),i_period);
+            if(hwnd!=0) Print("Chart window detected");
+           }
+         //---- refresh window not frequently than 1 time in 2 seconds
+         if(hwnd!=0 && cur_time-last_time>=2)
+           {
+            PostMessageA(hwnd,WM_COMMAND,33324,0);
+            last_time=cur_time;
+           }
+        } 
+     }      
+//----
+   return(0);
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void deinit()
+  {
+   if(ExtHandle>=0) { FileClose(ExtHandle); ExtHandle=-1; }
+  }
+//+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
+//|                                                        uther.mq4 |
+//|                        Copyright 2017, MetaQuotes Software Corp. |
+//|                                             https://www.mql5.com |
+//+------------------------------------------------------------------+
+#property copyright "Copyright 2017, MetaQuotes Software Corp."
+#property link      "https://www.mql5.com"
+#property version   "1.00"
+#property strict
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+int ThisBarTrade =  0;//variable used to ensure only one trade per bar is performed
+double pips=0;//variable used to ensure only one trade per bar is performed
+
+extern double stopLine=90;
+extern double trendAverage=90;
+extern double shortAverage = 200;
+extern double longAverage = 1900;
+extern double takeProfitt = 60;//
+ double takeProfit = takeProfitt*Point*10;
+extern double stopLos = 40;//
+double stopLoss = stopLos*Point*10;
+extern double shift = 25;
+extern double traillProf = 11;//
+double trailProfit = traillProf*Point*10;
+extern double traillLoss = 11;//
+double trailLoss = traillLoss*Point*10;
+    
+   double lotSize = .01;
+   
+   
+int OnInit()
+{
+ double tickSize =MarketInfo(Symbol(),MODE_TICKSIZE);
+   if(tickSize==.00001||tickSize==.001)
+    pips= tickSize*100;
+   else pips=tickSize;
+ 
+   return(INIT_SUCCEEDED);
+   }
+
+//+------------------------------------------------------------------+
+//| Expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+  {
+//---
+   
+  }
+//+------------------------------------------------------------------+
+//| Expert tick function                                             |
+//+------------------------------------------------------------------+
+void OnTick()
+  {
+  if (Bars != ThisBarTrade ) {
+   ThisBarTrade = Bars; 
+   
+   double trade = tradeTrades();
+   double trailll = trailTrades();
+   
+   
+   }}
+   
+   double tradeTrades(){
+
+   //double lotSize = NormalizeDouble(((     (AccountFreeMargin()*risk)/(.01*stopLos))    *.01),2); //sizes investment to 5% of account balance
+    //if(lotSize<.01){lotSize = .01;} //if account reduces, makes 1 microlot the min investment
+  // Print(lotSize+" lotsize");
+//---
+   
+   //SELL
+   //if((iMA(NULL,0,5,0,0,0,0)<iMA(NULL,0,longAverage,0,0,0,0))&&(iMA(NULL,0,5,0,0,0,0)<iMA(NULL,0,shortAverage,0,0,0,0)))
+     if((iMA(NULL,0,shortAverage,0,0,0,1)>iMA(NULL,0,longAverage,0,0,0,1))&&(iMA(NULL,0,shortAverage,0,0,0,0)<iMA(NULL,0,longAverage,0,0,0,0))&&(Bid<iMA(NULL,0,stopLine,0,0,0,0))){//fast moving average is above 2 slower moving averages
+  // if(iStochastic(NULL,0,5,3,3,0,0,0,1)>80&&iStochastic(NULL,0,5,3,3,0,0,0,0)<80){ //stochastic idicator goes through a certain point
+    //if(iMACD(NULL,0,12,26,9,0,0,0)<0&&iMACD(NULL,0,12,26,9,0,0,1)>0){
+  // if(((iMA(NULL,0,trendAverage,0,0,0,0)-iMA(NULL,0,trendAverage,0,0,0,shift)))<0){//slope of a certain moving average is greater than a certain amount
+   
+   double sellticket=OrderSend(Symbol(),OP_SELL,lotSize,Bid,3,Bid+(stopLoss),0/*Bid-(takeProfit)*/,NULL,0,0,Red);
+   }//}}//}
+   
+   //BUY
+ //  if((iMA(NULL,0,5,0,0,0,0)>iMA(NULL,0,longAverage,0,0,0,0))&&(iMA(NULL,0,5,0,0,0,0)>iMA(NULL,0,shortAverage,0,0,0,0)))
+  if((iMA(NULL,0,shortAverage,0,0,0,1)<iMA(NULL,0,longAverage,0,0,0,1))&&(iMA(NULL,0,shortAverage,0,0,0,0)>iMA(NULL,0,longAverage,0,0,0,0))&&(Bid>iMA(NULL,0,stopLine,0,0,0,0))){//fast moving average is above 2 slower moving averages
+  // if(iStochastic(NULL,0,5,3,3,0,0,0,1)<20&&iStochastic(NULL,0,5,3,3,0,0,0,0)>20){ //stochastic idicator goes through a certain point
+  // if(iMACD(NULL,0,12,26,9,0,0,0)>0&&iMACD(NULL,0,12,26,9,0,0,1)<0){
+  // if(((iMA(NULL,0,trendAverage,0,0,0,0)-iMA(NULL,0,trendAverage,0,0,0,shift)))>0){//slope of a certain moving average is greater than a certain amount
+   
+   double buyticket=OrderSend(Symbol(),OP_BUY,lotSize,Ask,3,Ask-(stopLoss),0/*Ask+(takeProfit)*/,NULL,0,0,Green);
+   }//}}//}
+   
+   return 0;
+  }
+  
+  double trailTrades(){
+   {
+   
+//----
+   double stopcrnt;
+   double stopcal;
+   int trade;
+   int trades=OrdersTotal();
+   double profitcalc;
+   for(trade=0;trade<trades;trade++)
+     {
+    
+      OrderSelect(trade,SELECT_BY_POS,MODE_TRADES);
+      if(OrderSymbol()==Symbol())
+         {
+         //continue;
+         //LONG
+         if(OrderType()==OP_BUY)
+           {
+            stopcrnt=OrderStopLoss();
+            stopcal=Bid-(stopLoss);
+            //profitcalc=OrderTakeProfit()+(TakeProfit*Point);
+            if (stopcrnt==0)
+              {
+               OrderModify(OrderTicket(),OrderOpenPrice(),stopcal,0/*profitcalc*/,0,Blue);
+              }
+              else
+               if(Ask<iMA(NULL,0,shortAverage,0,0,0,0)){OrderClose(OrderTicket(),OrderLots(),Bid,3,0);}
+           /* else
+               if(OrderOpenPrice()<OrderStopLoss()&& stopcal>(stopcrnt+trailProfit))
+                 {
+                  OrderModify(OrderTicket(),OrderOpenPrice(),stopcal,0/*profitcalc*///,0,Blue);
+                  //  if(trades<20){ double buyticket=OrderSend(Symbol(),OP_BUY,lotSize,Ask,3,stopcal/*Ask-(trail)*/,0/*Ask+(takeProfit*.00001)*/,NULL,0,0,Green);}
+               //  }*/
+                /* else
+               if(OrderOpenPrice()>OrderStopLoss()&&stopcal>(stopcrnt+trailLoss)&&trailLoss!=0)
+                 {
+                  OrderModify(OrderTicket(),OrderOpenPrice(),stopcal,0/*profitcalc*///,0,Blue);
+                // if(trades<10){double buyticket=OrderSend(Symbol(),OP_BUY,lotSize,Ask,3,stopcal/*Ask-(trail)*/,0/*Ask+(takeProfit*.00001)*/,NULL,0,0,Green);}
+                 //}
+            }
+         }//LONG
+         //Shrt
+         if(OrderType()==OP_SELL)
+           {
+            stopcrnt=OrderStopLoss();
+            stopcal=Ask+(stopLoss);
+           // profitcalc=OrderTakeProfit()-(TakeProfit*Point);
+            if (stopcrnt==0)
+              {
+               OrderModify(OrderTicket(),OrderOpenPrice(),stopcal,0/*profitcalc*/,0,Red);
+              }
+              else
+               if(Ask<iMA(NULL,0,shortAverage,0,0,0,0)){OrderClose(OrderTicket(),OrderLots(),Ask,3,0);}
+          /*  else
+               if(OrderOpenPrice()>OrderStopLoss()&&stopcal<(stopcrnt-trailProfit))
+                 {
+                  OrderModify(OrderTicket(),OrderOpenPrice(),stopcal,0/*profitcalc*///,0,Red);
+              //  if(trades<20){ double sellticket=OrderSend(Symbol(),OP_SELL,lotSize,Bid,3,stopcal/*Bid+(trail)*/,0/*Bid-(takeProfit*.00001)*/,NULL,0,0,Red);}
+                // }*/
+               /*  else
+               if(OrderOpenPrice()<OrderStopLoss()&&stopcal<(stopcrnt-trailLoss)&&trailLoss!=0)
+                 {
+                  OrderModify(OrderTicket(),OrderOpenPrice(),stopcal,0/*profitcalc*///,0,Red);
+                /// if(trades<10){ double sellticket=OrderSend(Symbol(),OP_SELL,lotSize,Bid,3,stopcal/*Bid+(trail)*/,0/*Bid-(takeProfit*.00001)*/,NULL,0,0,Red);}
+                // }
+           }
+      }
+  }//Shrt
+  
+  return 0;
+  }
+//+------------------------------------------------------------------+
